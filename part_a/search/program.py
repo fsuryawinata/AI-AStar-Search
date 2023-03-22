@@ -2,6 +2,7 @@
 # Project Part A: Single Player Infexion
 
 from .utils import render_board
+import heapq
 
 
 def search(input: dict[tuple, tuple]) -> list[tuple]:
@@ -13,11 +14,26 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
 
     See the specification document for more details.
     """
+    print("coords: \n",  input.keys())
+    print("values: \n", input.values())
 
+    queue = []
+    red_tokens_coords = []
+
+    # find red tokens
+    index = 0
+    for value in input.values():
+        player = value[0]
+        print(player)
+        if player == 'r':
+            red_tokens_coords += list(input.keys())[index]
+        index += 1
+
+    print(red_tokens_coords);
     # The render_board function is useful for debugging -- it will print out a 
     # board state in a human-readable format. Try changing the ansi argument 
     # to True to see a colour-coded version (if your terminal supports it).
-    print(render_board(input, ansi=False))
+    print(render_board(input, ansi=True))
 
     # Here we're returning "hardcoded" actions for the given test.csv file.
     # Of course, you'll need to replace this with an actual solution...
@@ -28,3 +44,4 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
         (1, 4, 0, -1),
         (1, 3, 0, -1)
     ]
+
