@@ -38,54 +38,56 @@ def heuristic(curr_state, goal_states):
     return min(cost_to_goal)
 
 
-def generateSuccessors(parent):
+def generateSuccessors(parent, goal_state):
     x, y = parent
-
-    # coords: direction
-    neighbours = {(x, y + 1): (0, 1), (x - 1, y + 1): (-1, 1), (x - 1, y): (-1, 0),
-                  (x, y - 1): (0, -1), (x + 1, y - 1): (1, -1), (x + 1, y): (1, 0)}
     successors = {}
+    directions = [(1, 0), (-1, 0), (0, 1), (0, -1), (-1, 1), (1, -1)]
+    for dx, dy in directions:
+        successor = (x + dx, y + dy)
 
-    for neighbour, direction in neighbours.items():
-        x1, y1 = neighbour
-        if isValid(x1, y1):
-            successors[neighbour] = direction
-        else:
-            if x1 == 7:
-                x1 = 0
-            if y1 == 7:
-                y1 = 0
-            if x1 == -1:
-                x1 = 0
-            if y1 == -1:
-                y1 = 0
-            new_neighbour = (x1, y1)
-            successors[new_neighbour] = direction
+        # Wrap around the hexagon graph if the successor state is outside the boundaries
+        if x < 0:
+            successors[(6, y)] = (dx, dy)
+        elif x > 6:
+            successors[(0, y)] = (dx, dy)
+        if y < 0:
+            successors[(x, 6)] = (dx, dy)
+        elif y > 6:
+            successors[(x, 0)] = (dx, dy)
+
+        if successor[0] < 0:
+            successors[(6, successor[1])] = (dx, dy)
+        elif successor[0] > 6:
+            successors[(0, successor[1])] = (dx, dy)
+        if successor[1] < 0:
+            successors[(successor[0], 6)] = (dx, dy)
+        elif successor[1] > 6:
+            successors[(successor[0], 0)] = (dx, dy)
     return successors
 
-"""
-def generateSuccessors(parent, goal_states):
-    x, y = parent
-    neighbours = {(x, y + 1): (0, 1), (x - 1, y + 1):(-1, 1), (x - 1, y):(-1, 0),
-                  (x, y - 1):(0, -1), (x + 1, y - 1):(1, -1), (x + 1, y):(1, 0)}
-    successors = []
-    for neighbour_state, step_cost in neighbours:
-        x1, y1 = neighbour_state
-        if isValid(x1, y1):
-            successors.append((neighbour_state, step_cost))
-        else:
-            if x == 6:
-                x = 0
-            if y == 6:
-                y = 0
-            successors.append((neighbour_state, step_cost))
-    return successors
-    """
-def isValid(row, col):
+
+def makeValidSuccessors(x, y):
+    newx = x
+    newy = y
+    if isValid(x, y):
+        return x, y
+    else:
+        if x > 6:
+            newx = 0
+        elif x < 0:
+            newx = 0
+        if y > 6:
+            newy = 0
+        elif y < 0:
+            newy = 6
+        return newx, newy
+
+
+def isValid(x, y):
     """
     Check if node is valid
     """
-    return (row >= 0) & (row < 7) & (col >= 0) & (col < 7)
+    return (x >= 0) & (x < 7) & (y >= 0) & (y < 7)
 
 
 def search(input: dict[tuple, tuple]) -> list[tuple]:
@@ -104,13 +106,13 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
             goal_states[key] = value
 
     # Find most optimal start node (a red node closest to blue node)
-    #print(input)
+    # print(input)
 
     # initialise start node
     frontier = []
     explored = set()
     red_node = list(input.keys())[0]
-    direction = (0,0)
+    direction = (0, 0)
     init_node = Node(None, red_node, direction, heuristic(red_node, goal_states))
     heapq.heappush(frontier, init_node)
 
@@ -118,10 +120,10 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
     while frontier:
         curr_node = heapq.heappop(frontier)
         curr_state = curr_node.state
-        print(curr_state)
+        print(f"Curr state: {curr_state}")
 
         if curr_state in goal_states:
-            #path = []
+            # path = []
             while curr_node:
                 path.append((curr_state, direction))
                 curr_node = curr_node.parent
@@ -130,20 +132,20 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
                 else:
                     None
 
-
     explored.add(curr_state)
 
-    successors = generateSuccessors(curr_state)
+    successors = generateSuccessors(curr_state, goal_states)
     step_cost = 1
     for successor_state, direction in successors.items():
+        if successor_state in explored:
+            continue
         print(successor_state)
-        if successor_state not in explored:
-            successor_cost = curr_node.g + step_cost
-            successor_h = heuristic(successor_state, goal_states)
-            successor_node = Node(successor_state, curr_node, direction, successor_cost, successor_h)
-            heapq.heappush(frontier, successor_node)
+        successor_cost = curr_node.g + step_cost
+        successor_h = heuristic(successor_state, goal_states)
+        successor_node = Node(successor_state, curr_node, direction, successor_cost, successor_h)
+        heapq.heappush(frontier, successor_node)
 
-    #print(path)
+    # print(path)
 
     # The render_board function is useful for debugging -- it will print out a
     # board state in a human-readable format. Try changing the ansi argument 
