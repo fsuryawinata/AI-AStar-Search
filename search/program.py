@@ -11,10 +11,11 @@ class Node:
     Node class for A* search
     """
 
-    def __init__(self, parent=None, state=None, direction=None, g=0, h=0):
+    def __init__(self, parent=None, state=None, direction=None, power=None, g=0, h=0):
         self.parent = parent
-        self.state = state
-        self.direction = direction
+        self.state = state  # location of the node
+        self.direction = direction  # direction it took to get here
+        self.power = power
 
         self.g = g  # cost so far
         self.h = h  # cost to goal
@@ -26,7 +27,7 @@ class Node:
 
 def heuristic(curr_state, goal_states):
     """
-    Takes current node location and returns the min Euclidian
+    Takes current node location and returns the minimum Euclidian
     distance between current node and goal nodes
     """
     x1, y1 = curr_state
@@ -38,8 +39,11 @@ def heuristic(curr_state, goal_states):
     return min(cost_to_goal)
 
 
-def generateSuccessors(parent):
-    x, y = parent
+def generateSuccessors(parent_node):
+    """
+    Generate 6 successors of the parent node
+    """
+    x, y = parent_node.state
     successors = {}
     directions = [(1, 0), (-1, 0), (0, 1), (0, -1), (-1, 1), (1, -1)]
     for dx, dy in directions:
@@ -55,32 +59,9 @@ def generateSuccessors(parent):
         elif successor[1] > 6:
             successor = (successor[0], 0)
 
+        # add to dictionary with direction taken
         successors[successor] = (dx, dy)
     return successors
-
-
-def makeValidSuccessors(x, y):
-    newx = x
-    newy = y
-    if isValid(x, y):
-        return x, y
-    else:
-        if x > 6:
-            newx = 0
-        elif x < 0:
-            newx = 0
-        if y > 6:
-            newy = 0
-        elif y < 0:
-            newy = 6
-        return newx, newy
-
-
-def isValid(x, y):
-    """
-    Check if node is valid
-    """
-    return (x >= 0) & (x < 7) & (y >= 0) & (y < 7)
 
 
 def search(input: dict[tuple, tuple]) -> list[tuple]:
@@ -99,55 +80,71 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
             goal_states[key] = value
 
     # Find most optimal start node (a red node closest to blue node)
-    # print(input)
 
-    # initialise start node
     frontier = []
+    path = []
     explored = set()
-    red_node = list(input.keys())[0]
+
+    # Initialise start node
     direction = (0, 0)
-    init_node = Node(None, red_node, direction, heuristic(red_node, goal_states))
+    red_node = list(input.keys())[0]
+    red_power = list(input.values())[0][1]
+    init_node = Node(None, red_node, direction, red_power, heuristic(red_node, goal_states))
     heapq.heappush(frontier, init_node)
 
-    path = []
+    # Run while all goal nodes found
+    while goal_states:
 
-    while frontier:
-        curr_node = heapq.heappop(frontier)
-        curr_state = curr_node.state
-        print(f"Popped curr state: {curr_state}")
+        # Run while heap queue exists
+        while frontier:
+            # Remove current node from queue
+            curr_node = heapq.heappop(frontier)
+            curr_state = curr_node.state
 
-        if curr_state in goal_states:
-            # path = []
-            while curr_node:
-                path.append((curr_state, direction))
-                curr_node = curr_node.parent
-                if curr_node:
-                    curr_state = curr_node.state
-                else:
-                    None
+            # If goal is found, add to path
+            if curr_state in goal_states:
+                goal_states.pop(curr_state)
+                while curr_node:
+                    path.append((curr_state, direction))
+                    curr_node = curr_node.parent
+                    if curr_node:
+                        curr_state = curr_node.state
+                    else:
+                        None
+                break
 
-        explored.add(curr_state)
+            # Add to visited nodes
+            explored.add(curr_state)
 
-        successors = generateSuccessors(curr_state)
-        step_cost = 1
-        for successor_state, direction in successors.items():
-            if successor_state in explored:
-                print("EXPLORED")
-                continue
-            print(successor_state)
-            successor_cost = curr_node.g + step_cost
-            successor_h = heuristic(successor_state, goal_states)
-            successor_node = Node(curr_node, successor_state, direction, successor_cost, successor_h)
-            heapq.heappush(frontier, successor_node)
-            print("PUSHED")
+            # Generate successors for current node
+            step_cost = 1
+            successors = generateSuccessors(curr_node)
 
-    # print(path)
+            for successor_state, direction in successors.items():
+                if successor_state in explored:
+                    continue
+
+                # Create and add generated nodes into queue
+                successor_cost = curr_node.g + step_cost
+                successor_h = heuristic(successor_state, goal_states)
+                successor_power = 0;
+                successor_node = Node(curr_node, successor_state, direction, successor_power, successor_cost, successor_h)
+                heapq.heappush(frontier, successor_node)
+
+    # Reverses path taken from goal to initial node
+    output = []
+    for state, direction in path:
+        output.append((state[0], state[1], direction[0], direction[1]))
+    output.reverse()
+    return output
 
     # The render_board function is useful for debugging -- it will print out a
-    # board state in a human-readable format. Try changing the ansi argument 
+    # board state in a human-readable format. Try changing the ansi argument
     # to True to see a colour-coded version (if your terminal supports it).
-    print(render_board(input, ansi=False))
 
+    """
+    print(render_board(input, ansi=False))
+    
     # Here we're returning "hardcoded" actions for the given test.csv file.
     # Of course, you'll need to replace this with an actual solution...
     return [
@@ -157,3 +154,4 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
         (1, 4, 0, -1),
         (1, 3, 0, -1)
     ]
+    """
