@@ -38,7 +38,7 @@ def heuristic(curr_state, goal_states):
     return min(cost_to_goal)
 
 
-def generateSuccessors(parent, goal_state):
+def generateSuccessors(parent):
     x, y = parent
     successors = {}
     directions = [(1, 0), (-1, 0), (0, 1), (0, -1), (-1, 1), (1, -1)]
@@ -46,23 +46,16 @@ def generateSuccessors(parent, goal_state):
         successor = (x + dx, y + dy)
 
         # Wrap around the hexagon graph if the successor state is outside the boundaries
-        if x < 0:
-            successors[(6, y)] = (dx, dy)
-        elif x > 6:
-            successors[(0, y)] = (dx, dy)
-        if y < 0:
-            successors[(x, 6)] = (dx, dy)
-        elif y > 6:
-            successors[(x, 0)] = (dx, dy)
-
         if successor[0] < 0:
-            successors[(6, successor[1])] = (dx, dy)
+            successor = (6, successor[1])
         elif successor[0] > 6:
-            successors[(0, successor[1])] = (dx, dy)
+            successor = (0, successor[1])
         if successor[1] < 0:
-            successors[(successor[0], 6)] = (dx, dy)
+            successor = (successor[0], 6)
         elif successor[1] > 6:
-            successors[(successor[0], 0)] = (dx, dy)
+            successor = (successor[0], 0)
+
+        successors[successor] = (dx, dy)
     return successors
 
 
@@ -117,10 +110,11 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
     heapq.heappush(frontier, init_node)
 
     path = []
+
     while frontier:
         curr_node = heapq.heappop(frontier)
         curr_state = curr_node.state
-        print(f"Curr state: {curr_state}")
+        print(f"Popped curr state: {curr_state}")
 
         if curr_state in goal_states:
             # path = []
@@ -132,18 +126,20 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
                 else:
                     None
 
-    explored.add(curr_state)
+        explored.add(curr_state)
 
-    successors = generateSuccessors(curr_state, goal_states)
-    step_cost = 1
-    for successor_state, direction in successors.items():
-        if successor_state in explored:
-            continue
-        print(successor_state)
-        successor_cost = curr_node.g + step_cost
-        successor_h = heuristic(successor_state, goal_states)
-        successor_node = Node(successor_state, curr_node, direction, successor_cost, successor_h)
-        heapq.heappush(frontier, successor_node)
+        successors = generateSuccessors(curr_state)
+        step_cost = 1
+        for successor_state, direction in successors.items():
+            if successor_state in explored:
+                print("EXPLORED")
+                continue
+            print(successor_state)
+            successor_cost = curr_node.g + step_cost
+            successor_h = heuristic(successor_state, goal_states)
+            successor_node = Node(curr_node, successor_state, direction, successor_cost, successor_h)
+            heapq.heappush(frontier, successor_node)
+            print("PUSHED")
 
     # print(path)
 
