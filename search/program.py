@@ -73,6 +73,7 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
 
     See the specification document for more details.
     """
+    print(render_board(input, ansi=True))
     # initialise goal states
     goal_states = {}
     for key, value in input.items():
@@ -93,17 +94,21 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
     heapq.heappush(frontier, init_node)
 
     # Run while all goal nodes found
+    curr_power = 1
     while goal_states:
-
         # Run while heap queue exists
         while frontier:
             # Remove current node from queue
             curr_node = heapq.heappop(frontier)
             curr_state = curr_node.state
+            curr_power = curr_node.power
+            print(curr_state)
 
             # If goal is found, add to path
             if curr_state in goal_states:
+                curr_power += goal_states[curr_state][1]
                 goal_states.pop(curr_state)
+                print(f"Goal {curr_state} FOUND")
                 while curr_node:
                     path.append((curr_state, direction))
                     curr_node = curr_node.parent
@@ -120,16 +125,20 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
             step_cost = 1
             successors = generateSuccessors(curr_node)
 
-            for successor_state, direction in successors.items():
-                if successor_state in explored:
-                    continue
+            i = 0
+            print(f"POWER {curr_power}")
+            while i <= curr_power:
+                for successor_state, direction in successors.items():
+                    if successor_state in explored:
+                        continue
 
-                # Create and add generated nodes into queue
-                successor_cost = curr_node.g + step_cost
-                successor_h = heuristic(successor_state, goal_states)
-                successor_power = 0;
-                successor_node = Node(curr_node, successor_state, direction, successor_power, successor_cost, successor_h)
-                heapq.heappush(frontier, successor_node)
+                    # Create and add generated nodes into queue
+                    successor_cost = curr_node.g + step_cost
+                    successor_h = heuristic(successor_state, goal_states)
+                    successor_node = Node(curr_node, successor_state, direction, 1,
+                                          successor_cost, successor_h)
+                    heapq.heappush(frontier, successor_node)
+                i += 1
 
     # Reverses path taken from goal to initial node
     output = []
