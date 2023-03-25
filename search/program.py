@@ -46,21 +46,31 @@ def generateSuccessors(parent_node):
     x, y = parent_node.state
     successors = {}
     directions = [(1, 0), (-1, 0), (0, 1), (0, -1), (-1, 1), (1, -1)]
-    for dx, dy in directions:
-        successor = (x + dx, y + dy)
 
-        # Wrap around the hexagon graph if the successor state is outside the boundaries
-        if successor[0] < 0:
-            successor = (6, successor[1])
-        elif successor[0] > 6:
-            successor = (0, successor[1])
-        if successor[1] < 0:
-            successor = (successor[0], 6)
-        elif successor[1] > 6:
-            successor = (successor[0], 0)
+    i = 1
+    while i <= parent_node.power:
+        for dx, dy in directions:
+            successor = (x + dx * i, y + dy * i)
 
-        # add to dictionary with direction taken
-        successors[successor] = (dx, dy)
+            # offset if node wraps around grid
+            negative_offset = 5
+            positive_offset = 7
+
+            # Wrap around the hexagon graph if the successor state is outside the boundaries
+            if successor[0] < 0:
+                successor = (abs(successor[0]) + negative_offset, successor[1])
+            elif successor[0] > 6:
+                successor = (successor[0] - positive_offset, successor[1])
+            if successor[1] < 0:
+                successor = (successor[0], abs(successor[0]) + negative_offset)
+            elif successor[1] > 6:
+                successor = (successor[0], successor[1] - positive_offset)
+
+            print(f"REAL NEXT NODE: {successor}")
+
+            # add to dictionary with direction taken
+            successors[successor] = (dx, dy)
+        i += 1
     return successors
 
 
@@ -108,9 +118,10 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
             if curr_state in goal_states:
                 curr_power += goal_states[curr_state][1]
                 goal_states.pop(curr_state)
+
                 print(f"Goal {curr_state} FOUND")
                 while curr_node:
-                    path.append((curr_state, direction))
+                    path.append((curr_state, curr_node.direction))
                     curr_node = curr_node.parent
                     if curr_node:
                         curr_state = curr_node.state
@@ -125,20 +136,17 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
             step_cost = 1
             successors = generateSuccessors(curr_node)
 
-            i = 0
             print(f"POWER {curr_power}")
-            while i <= curr_power:
-                for successor_state, direction in successors.items():
-                    if successor_state in explored:
-                        continue
+            for successor_state, direction in successors.items():
+                if successor_state in explored:
+                    continue
 
-                    # Create and add generated nodes into queue
-                    successor_cost = curr_node.g + step_cost
-                    successor_h = heuristic(successor_state, goal_states)
-                    successor_node = Node(curr_node, successor_state, direction, 1,
-                                          successor_cost, successor_h)
-                    heapq.heappush(frontier, successor_node)
-                i += 1
+                # Create and add generated nodes into queue
+                successor_cost = curr_node.g + step_cost
+                successor_h = heuristic(successor_state, goal_states)
+                successor_node = Node(curr_node, successor_state, direction, 1,
+                                      successor_cost, successor_h)
+                heapq.heappush(frontier, successor_node)
 
     # Reverses path taken from goal to initial node
     output = []
