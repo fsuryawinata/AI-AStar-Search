@@ -66,8 +66,6 @@ def generateSuccessors(parent_node):
             elif successor[1] > 6:
                 successor = (successor[0], successor[1] - positive_offset)
 
-            print(f"REAL NEXT NODE: {successor}")
-
             # add to dictionary with direction taken
             successors[successor] = (dx, dy)
         i += 1
@@ -91,7 +89,6 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
             goal_states[key] = value
 
     # Find most optimal start node (a red node closest to blue node)
-
     frontier = []
     path = []
     explored = set()
@@ -103,9 +100,13 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
     init_node = Node(None, red_node, direction, red_power, heuristic(red_node, goal_states))
     heapq.heappush(frontier, init_node)
 
+    new_start_node = Node(None)
     # Run while all goal nodes found
-    curr_power = 1
     while goal_states:
+        # Reset list with last goal state as new start
+        if new_start_node.parent is not None:
+            frontier = []
+            heapq.heappush(frontier, new_start_node)
         # Run while heap queue exists
         while frontier:
             # Remove current node from queue
@@ -117,13 +118,16 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
             # If goal is found, add to path
             if curr_state in goal_states:
                 curr_power += goal_states[curr_state][1]
+                print (f"{curr_power - goal_states[curr_state][1]} + {goal_states[curr_state][1]} = {curr_power}")
                 goal_states.pop(curr_state)
+                new_start_node = curr_node
 
                 print(f"Goal {curr_state} FOUND")
                 while curr_node:
                     path.append((curr_state, curr_node.direction))
                     curr_node = curr_node.parent
                     if curr_node:
+                        curr_node.power = curr_node
                         curr_state = curr_node.state
                     else:
                         None
@@ -148,6 +152,7 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
                                       successor_cost, successor_h)
                 heapq.heappush(frontier, successor_node)
 
+            print(f"EXPLORED: {explored}")
     # Reverses path taken from goal to initial node
     output = []
     for state, direction in path:
