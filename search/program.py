@@ -90,7 +90,8 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
 
     # Find most optimal start node (a red node closest to blue node)
     frontier = []
-    path = []
+    final_path = []
+    final_directions = []
     explored = set()
 
     # Initialise start node
@@ -103,6 +104,8 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
     new_start_node = Node(None)
     # Run while all goal nodes found
     while goal_states:
+        path = []
+        prev_direction = []
         # Reset list with last goal state as new start
         if new_start_node.parent is not None:
             frontier = []
@@ -124,13 +127,25 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
 
                 print(f"Goal {curr_state} FOUND")
                 while curr_node:
-                    path.append((curr_state, curr_node.direction))
+                    path.append(curr_state)
+                    prev_direction.append(curr_node.direction)
                     curr_node = curr_node.parent
                     if curr_node:
                         curr_node.power = curr_node
                         curr_state = curr_node.state
                     else:
                         None
+
+                # Append to final path
+                print(f"path: {path}")
+                path.reverse()
+                prev_direction.reverse()
+                for steps in path:
+                    if steps not in final_path:
+                        final_path.append(steps)
+
+                for dir in prev_direction:
+                    final_directions.append(dir)
                 break
 
             # Add to visited nodes
@@ -155,9 +170,15 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
             print(f"EXPLORED: {explored}")
     # Reverses path taken from goal to initial node
     output = []
-    for state, direction in path:
-        output.append((state[0], state[1], direction[0], direction[1]))
-    output.reverse()
+    i = 0
+    print(f"final path: {final_path}")
+    print(f"prev dir: {final_directions}")
+    while i < len(final_path):
+        x, y = final_path[i]
+        dir_x, dir_y = final_directions[i + 1]
+        output.append((x, y, dir_x, dir_y))
+        i += 1
+    print(f"OUT {output}")
     return output
 
     # The render_board function is useful for debugging -- it will print out a
