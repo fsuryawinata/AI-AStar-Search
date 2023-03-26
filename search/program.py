@@ -41,7 +41,7 @@ def heuristic(curr_state, goal_states):
 
 def generateSuccessors(parent_node):
     """
-    Generate 6 successors of the parent node
+    Generate the successors of the parent node
     """
     x, y = parent_node.state
     successors = {}
