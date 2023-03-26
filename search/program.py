@@ -50,7 +50,7 @@ def generateSuccessors(parent_node):
     i = 1
     while i <= parent_node.power:
         for dx, dy in directions:
-            successor = (x + dx * i, y + dy * i)
+            successor = (x + dx, y + dy)
 
             # offset if node wraps around grid
             negative_offset = 5
@@ -92,6 +92,7 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
     frontier = []
     final_path = []
     final_directions = []
+    curr_power = 1
     explored = set()
 
     # Initialise start node
@@ -106,38 +107,52 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
     while goal_states:
         path = []
         prev_direction = []
+
         # Reset list with last goal state as new start
         if new_start_node.parent is not None:
             frontier = []
             heapq.heappush(frontier, new_start_node)
+            print(f"The start node is {new_start_node.state}")
         # Run while heap queue exists
         while frontier:
             # Remove current node from queue
             curr_node = heapq.heappop(frontier)
             curr_state = curr_node.state
-            curr_power = curr_node.power
-            print(curr_state)
+            if curr_state == (1, 3) or curr_state == (2, 3):
+                print(f"The parent is {curr_node.parent.state}")
+            # print(curr_state)
 
             # If goal is found, add to path
             if curr_state in goal_states:
-                curr_power += goal_states[curr_state][1]
-                print (f"{curr_power - goal_states[curr_state][1]} + {goal_states[curr_state][1]} = {curr_power}")
+                curr_power = goal_states[curr_state][1] + 1
+                if curr_state == (3, 2):
+                    print(f"The curr power {curr_power} comes from {curr_state}")
                 goal_states.pop(curr_state)
                 new_start_node = curr_node
+                new_start_node.power = curr_power
+                tes = curr_state
 
-                print(f"Goal {curr_state} FOUND")
+                # print(f"Goal {curr_state} FOUND")
                 while curr_node:
-                    path.append(curr_state)
-                    prev_direction.append(curr_node.direction)
-                    curr_node = curr_node.parent
-                    if curr_node:
-                        curr_node.power = curr_node
-                        curr_state = curr_node.state
-                    else:
-                        None
+                    if curr_state not in path:
+                        path.append(curr_state)
+                        prev_direction.append(curr_node.direction)
+                        print(f"The path for {tes} is {path}")
 
-                # Append to final path
-                print(f"path: {path}")
+                        curr_node = curr_node.parent
+                        if curr_node:
+                            curr_state = curr_node.state
+                        else:
+                            None
+
+                # Append to final path and direction for output
+                # print(f"path: {path}")
+                i = 0
+                while i < len(prev_direction):
+                    if prev_direction[i] == (0, 0):
+                        prev_direction.pop(i)
+                    i += 1
+
                 path.reverse()
                 prev_direction.reverse()
                 for steps in path:
@@ -155,30 +170,33 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
             step_cost = 1
             successors = generateSuccessors(curr_node)
 
-            print(f"POWER {curr_power}")
             for successor_state, direction in successors.items():
                 if successor_state in explored:
                     continue
 
+                if curr_state == (2, 3):
+                    print(f"THE SUCCESSORS ARE {successor_state}")
                 # Create and add generated nodes into queue
                 successor_cost = curr_node.g + step_cost
                 successor_h = heuristic(successor_state, goal_states)
-                successor_node = Node(curr_node, successor_state, direction, 1,
+                successor_node = Node(curr_node, successor_state, direction, curr_power,
                                       successor_cost, successor_h)
                 heapq.heappush(frontier, successor_node)
 
-            print(f"EXPLORED: {explored}")
+
+            # print(f"EXPLORED: {explored}")
     # Reverses path taken from goal to initial node
     output = []
     i = 0
-    print(f"final path: {final_path}")
-    print(f"prev dir: {final_directions}")
+    # print(f"final path: {final_path}")
+    # print(f"prev dir: {final_directions}")
+
     while i < len(final_path):
-        x, y = final_path[i]
-        dir_x, dir_y = final_directions[i + 1]
+        x, y = path[i]
+        dir_x, dir_y = final_directions[i]
         output.append((x, y, dir_x, dir_y))
         i += 1
-    print(f"OUT {output}")
+    # print(f"OUT {output}")
     return output
 
     # The render_board function is useful for debugging -- it will print out a
