@@ -22,54 +22,108 @@ class Node:
         self.f = self.g + self.h  # total cost to goal
 
     def __lt__(self, other):
-        return self.f < other.f
+        # Return greater power if distance to goal is equal
+        if self.f == other.f:
+            return self.power > other.power
+        else:
+            return self.f < other.f
 
 
-def heuristic(curr_state, goal_states):
+def EuclidianDistance(curr_state, goal_states):
     """
-    Takes current node location and returns the minimum Euclidian
-    distance between current node and goal nodes
+    Takes current node location and returns the Euclidian
+   distance between current node and goal nodes
     """
     x1, y1 = curr_state
     cost_to_goal = []
+
     for x2, y2 in goal_states:
         dx = x1 - x2
         dy = y1 - y2
         cost_to_goal.append(sqrt(dx ** 2 + dy ** 2))
+
+    return cost_to_goal
+
+
+def heuristic(curr_state, goal_states):
+    """
+    Returns the minimum Euclidian distance between current node and goal nodes
+    """
+    cost_to_goal = EuclidianDistance(curr_state, goal_states)
     return min(cost_to_goal)
+
+
+def is_between_goals(curr_state, goal_states):
+    """
+    Checks if successor is between goals for exclusion
+    """
+    cost_to_goal = EuclidianDistance(curr_state, goal_states)
+    cost_to_goal.sort()
+    if len(cost_to_goal) > 1:
+        return cost_to_goal[0] == cost_to_goal[1]
+    else:
+        return False
 
 
 def generateSuccessors(parent_node):
     """
     Generate the successors of the parent node
     """
+    power = parent_node.power
     x, y = parent_node.state
     successors = {}
     directions = [(1, 0), (-1, 0), (0, 1), (0, -1), (-1, 1), (1, -1)]
 
-    i = 1
-    while i <= parent_node.power:
-        for dx, dy in directions:
-            successor = (x + dx, y + dy)
+    for dx, dy in directions:
+        successor = (x + dx * power, y + dy * power)
+        grid_size = 7
 
-            # offset if node wraps around grid
-            negative_offset = 5
-            positive_offset = 7
+        # Wrap around the hexagon graph if the successor state is outside the boundaries
+        if successor[0] < 0:
+            successor = (abs(successor[0]) % grid_size, successor[1])
+        elif successor[0] > 6:
+            successor = (successor[0] % grid_size, successor[1])
+        if successor[1] < 0:
+            successor = (successor[0], abs(successor[0]) % grid_size)
+        elif successor[1] > 6:
+            successor = (successor[0], successor[1] % grid_size)
 
-            # Wrap around the hexagon graph if the successor state is outside the boundaries
-            if successor[0] < 0:
-                successor = (abs(successor[0]) + negative_offset, successor[1])
-            elif successor[0] > 6:
-                successor = (successor[0] - positive_offset, successor[1])
-            if successor[1] < 0:
-                successor = (successor[0], abs(successor[0]) + negative_offset)
-            elif successor[1] > 6:
-                successor = (successor[0], successor[1] - positive_offset)
-
-            # add to dictionary with direction taken
-            successors[successor] = (dx, dy)
-        i += 1
+        # add to dictionary with direction taken
+        successors[successor] = (dx, dy)
     return successors
+
+
+def checkSuccessor(parent_node, successor_state, goal_states):
+    """
+    Check if there are goal states between successor and parent state in the a direction
+    """
+    x_p, y_p = parent_node.state
+    x_s, y_s = successor_state
+    x_diff = int(abs(x_p - x_s))
+    y_diff = int(abs(y_p - y_s))
+
+    directions = [(1, 0), (-1, 0), (0, 1), (0, -1), (-1, 1), (1, -1)]
+    if (x_diff != 0) and (y_diff != 0):
+        return None
+    elif x_diff == 0:
+        new_dir = (0, y_diff / abs(y_diff))
+        distance_diff = y_diff
+    else:
+        new_dir = (x_diff / abs(x_diff), 0)
+        distance_diff = x_diff
+
+    if new_dir in directions:
+        x_dir, y_dir = new_dir
+
+        i = 0
+        while i < distance_diff:
+            x_s += x_dir
+            y_s += y_dir
+            if successor_state in goal_states:
+                return successor_state, new_dir
+            i += 1
+
+    return None
 
 
 def search(input: dict[tuple, tuple]) -> list[tuple]:
@@ -92,7 +146,6 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
     frontier = []
     final_path = []
     final_directions = []
-    curr_power = 1
     explored = set()
 
     # Initialise start node
@@ -112,32 +165,24 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
         if new_start_node.parent is not None:
             frontier = []
             heapq.heappush(frontier, new_start_node)
-            print(f"The start node is {new_start_node.state}")
+
         # Run while heap queue exists
         while frontier:
             # Remove current node from queue
             curr_node = heapq.heappop(frontier)
             curr_state = curr_node.state
-            if curr_state == (1, 3) or curr_state == (2, 3):
-                print(f"The parent is {curr_node.parent.state}")
-            # print(curr_state)
 
             # If goal is found, add to path
             if curr_state in goal_states:
                 curr_power = goal_states[curr_state][1] + 1
-                if curr_state == (3, 2):
-                    print(f"The curr power {curr_power} comes from {curr_state}")
                 goal_states.pop(curr_state)
                 new_start_node = curr_node
                 new_start_node.power = curr_power
-                tes = curr_state
 
-                # print(f"Goal {curr_state} FOUND")
                 while curr_node:
                     if curr_state not in path:
                         path.append(curr_state)
                         prev_direction.append(curr_node.direction)
-                        print(f"The path for {tes} is {path}")
 
                         curr_node = curr_node.parent
                         if curr_node:
@@ -146,7 +191,6 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
                             None
 
                 # Append to final path and direction for output
-                # print(f"path: {path}")
                 i = 0
                 while i < len(prev_direction):
                     if prev_direction[i] == (0, 0):
@@ -155,6 +199,9 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
 
                 path.reverse()
                 prev_direction.reverse()
+                # print(path)
+                #print(prev_direction)
+
                 for steps in path:
                     if steps not in final_path:
                         final_path.append(steps)
@@ -171,32 +218,45 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
             successors = generateSuccessors(curr_node)
 
             for successor_state, direction in successors.items():
+                print(goal_states)
                 if successor_state in explored:
                     continue
+                if is_between_goals(successor_state, goal_states):
+                    continue
 
-                if curr_state == (2, 3):
-                    print(f"THE SUCCESSORS ARE {successor_state}")
-                # Create and add generated nodes into queue
-                successor_cost = curr_node.g + step_cost
-                successor_h = heuristic(successor_state, goal_states)
-                successor_node = Node(curr_node, successor_state, direction, curr_power,
+                # Check if there are any goals in between nodes and add goal found to path
+                #print(f"parent state {curr_state}")
+                #print(f"before dir of {successor_state}: {direction}")
+                if curr_node.power != 1:
+                    # print(f"{curr_state} check {successor_state}")
+                    goal_found = checkSuccessor(curr_node, successor_state, goal_states)
+                    # print(f"goal found {goal_found}")
+
+                    # If goal found, pop
+                    if goal_found:
+                        #print(f"before {goal_states}")
+                        goal_states.pop(goal_found[0])
+                        #print(f"After {goal_states}")
+                        direction = goal_found[1]
+
+                #print(f"after dir of {successor_state}: {direction}")
+                if goal_states:
+                    # Create and add generated nodes into queue
+                    successor_cost = curr_node.g + step_cost * curr_node.power
+                    successor_h = heuristic(successor_state, goal_states)
+                    successor_node = Node(curr_node, successor_state, direction, 1,
                                       successor_cost, successor_h)
-                heapq.heappush(frontier, successor_node)
+                    heapq.heappush(frontier, successor_node)
 
-
-            # print(f"EXPLORED: {explored}")
     # Reverses path taken from goal to initial node
     output = []
     i = 0
-    # print(f"final path: {final_path}")
-    # print(f"prev dir: {final_directions}")
-
     while i < len(final_path):
-        x, y = path[i]
+        x, y = final_path[i]
         dir_x, dir_y = final_directions[i]
         output.append((x, y, dir_x, dir_y))
         i += 1
-    # print(f"OUT {output}")
+
     return output
 
     # The render_board function is useful for debugging -- it will print out a
