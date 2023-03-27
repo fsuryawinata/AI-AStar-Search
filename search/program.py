@@ -99,29 +99,26 @@ def checkSuccessor(parent_node, successor_state, goal_states):
     """
     x_p, y_p = parent_node.state
     x_s, y_s = successor_state
-    x_diff = int(abs(x_p - x_s))
-    y_diff = int(abs(y_p - y_s))
+    x_dir, y_dir = parent_node.direction
+    x_diff = x_s - x_p
+    y_diff = y_s - y_p
 
-    directions = [(1, 0), (-1, 0), (0, 1), (0, -1), (-1, 1), (1, -1)]
+    # Check if goals are in the same line and calculate distance from parent to last node it can reach
     if (x_diff != 0) and (y_diff != 0):
         return None
     elif x_diff == 0:
-        new_dir = (0, y_diff / abs(y_diff))
-        distance_diff = y_diff
+        distance_diff = int(y_diff)
     else:
-        new_dir = (x_diff / abs(x_diff), 0)
-        distance_diff = x_diff
+        distance_diff = int(x_diff)
 
-    if new_dir in directions:
-        x_dir, y_dir = new_dir
-
-        i = 0
-        while i < distance_diff:
-            x_s += x_dir
-            y_s += y_dir
-            if successor_state in goal_states:
-                return successor_state, new_dir
-            i += 1
+    # Check the line for goal nodes
+    i = 0
+    while i < distance_diff:
+        x_s += x_dir
+        y_s += y_dir
+        if successor_state in goal_states:
+            return successor_state
+        i += 1
 
     return None
 
@@ -199,15 +196,12 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
 
                 path.reverse()
                 prev_direction.reverse()
-                # print(path)
-                #print(prev_direction)
+                #print(f"PAth {path}")
+                #print(f"PREV _DIR {prev_direction}")
 
-                for steps in path:
-                    if steps not in final_path:
-                        final_path.append(steps)
+                final_path = path.copy()
 
-                for dir in prev_direction:
-                    final_directions.append(dir)
+                final_directions = prev_direction.copy()
                 break
 
             # Add to visited nodes
@@ -218,28 +212,20 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
             successors = generateSuccessors(curr_node)
 
             for successor_state, direction in successors.items():
-                print(goal_states)
                 if successor_state in explored:
                     continue
                 if is_between_goals(successor_state, goal_states):
                     continue
 
                 # Check if there are any goals in between nodes and add goal found to path
-                #print(f"parent state {curr_state}")
-                #print(f"before dir of {successor_state}: {direction}")
                 if curr_node.power != 1:
-                    # print(f"{curr_state} check {successor_state}")
+                    print(f"before dir {final_directions}")
                     goal_found = checkSuccessor(curr_node, successor_state, goal_states)
-                    # print(f"goal found {goal_found}")
-
                     # If goal found, pop
                     if goal_found:
-                        #print(f"before {goal_states}")
-                        goal_states.pop(goal_found[0])
-                        #print(f"After {goal_states}")
-                        direction = goal_found[1]
-
-                #print(f"after dir of {successor_state}: {direction}")
+                        goal_states.pop(goal_found)
+                        final_directions[len(final_directions) - 1] = final_directions[len(final_directions) - 2]
+                        print(f"AFTER dir {final_directions}")
                 if goal_states:
                     # Create and add generated nodes into queue
                     successor_cost = curr_node.g + step_cost * curr_node.power
@@ -251,28 +237,10 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
     # Reverses path taken from goal to initial node
     output = []
     i = 0
-    while i < len(final_path):
+    while i < len(final_directions):
         x, y = final_path[i]
         dir_x, dir_y = final_directions[i]
         output.append((x, y, dir_x, dir_y))
         i += 1
 
     return output
-
-    # The render_board function is useful for debugging -- it will print out a
-    # board state in a human-readable format. Try changing the ansi argument
-    # to True to see a colour-coded version (if your terminal supports it).
-
-    """
-    print(render_board(input, ansi=False))
-    
-    # Here we're returning "hardcoded" actions for the given test.csv file.
-    # Of course, you'll need to replace this with an actual solution...
-    return [
-        (5, 6, -1, 1),
-        (3, 1, 0, 1),
-        (3, 2, -1, 1),
-        (1, 4, 0, -1),
-        (1, 3, 0, -1)
-    ]
-    """
