@@ -166,6 +166,7 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
     frontier = []
     final_path = []
     final_directions = []
+    changes = []
     explored = set()
 
     # Initialise start node
@@ -229,7 +230,6 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
                 #print(f"PREV _DIR {prev_direction}")
 
                 final_path = path.copy()
-
                 final_directions = prev_direction.copy()
                 break
 
@@ -239,6 +239,7 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
             # Generate successors for current node
             step_cost = 1
             successors = generateSuccessors(curr_node, curr_node.power)
+
 
             for successor_state, direction in successors.items():
                 if successor_state in explored:
@@ -254,9 +255,9 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
                         for neighbour_state, neighbour_dir in additional_successors.items():
                             if neighbour_state in goal_states:
                                 goal_states.pop(neighbour_state)
-                                print(final_directions)
-                                final_directions[len(final_directions) - 1] = direction
-
+                                print(curr_state)
+                                print()
+                                changes.append((curr_state,direction))
 
                 if goal_states:
                     # Create and add generated nodes into queue
@@ -271,6 +272,9 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
     i = 0
     while i < len(final_directions):
         x, y = final_path[i]
+        for state, dir in changes:
+            if (x, y) == state:
+                final_directions[i] = dir
         dir_x, dir_y = final_directions[i]
         output.append((x, y, dir_x, dir_y))
         i += 1
