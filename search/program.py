@@ -64,12 +64,10 @@ def is_between_goals(curr_state, goal_states):
     else:
         return False
 
-
-def generateSuccessors(parent_node):
+def generateSuccessors(parent_node, power):
     """
     Generate the successors of the parent node
     """
-    power = parent_node.power
     x, y = parent_node.state
     successors = {}
     directions = [(1, 0), (-1, 0), (0, 1), (0, -1), (-1, 1), (1, -1)]
@@ -90,6 +88,31 @@ def generateSuccessors(parent_node):
 
         # add to dictionary with direction taken
         successors[successor] = (dx, dy)
+    return successors
+
+def generateAdditionalSuccessors(parent_node, power, direction):
+    """
+    Generate the other successors of the parent node
+    """
+    x, y = parent_node.state
+    dx, dy = direction
+    successors = {}
+
+    successor = (x + dx * power, y + dy * power)
+    grid_size = 7
+
+    # Wrap around the hexagon graph if the successor state is outside the boundaries
+    if successor[0] < 0:
+        successor = (abs(successor[0]) % grid_size, successor[1])
+    elif successor[0] > 6:
+        successor = (successor[0] % grid_size, successor[1])
+    if successor[1] < 0:
+        successor = (successor[0], abs(successor[0]) % grid_size)
+    elif successor[1] > 6:
+        successor = (successor[0], successor[1] % grid_size)
+
+    # add to dictionary with direction taken
+    successors[successor] = (dx, dy)
     return successors
 
 
@@ -146,11 +169,17 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
     explored = set()
 
     # Initialise start node
-    direction = (0, 0)
-    red_node = list(input.keys())[0]
-    red_power = list(input.values())[0][1]
-    init_node = Node(None, red_node, direction, red_power, heuristic(red_node, goal_states))
-    heapq.heappush(frontier, init_node)
+    init_states = {}
+    for key, value in input.items():
+        if value[0] == 'r':
+            init_states[key] = value
+
+    for key, value in init_states.items():
+        direction = (0, 0)
+        red_state = key
+        red_power = value[1]
+        init_node = Node(None, red_state, direction, red_power, heuristic(red_state, goal_states))
+        heapq.heappush(frontier, init_node)
 
     new_start_node = Node(None)
     # Run while all goal nodes found
@@ -209,7 +238,7 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
 
             # Generate successors for current node
             step_cost = 1
-            successors = generateSuccessors(curr_node)
+            successors = generateSuccessors(curr_node, curr_node.power)
 
             for successor_state, direction in successors.items():
                 if successor_state in explored:
@@ -219,13 +248,16 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
 
                 # Check if there are any goals in between nodes and add goal found to path
                 if curr_node.power != 1:
-                    print(f"before dir {final_directions}")
-                    goal_found = checkSuccessor(curr_node, successor_state, goal_states)
-                    # If goal found, pop
-                    if goal_found:
-                        goal_states.pop(goal_found)
-                        final_directions[len(final_directions) - 1] = final_directions[len(final_directions) - 2]
-                        print(f"AFTER dir {final_directions}")
+                    for power_of_node in range(1, curr_node.power - 1):
+                        additional_successors = generateAdditionalSuccessors(curr_node, power_of_node, direction)
+
+                        for neighbour_state, neighbour_dir in additional_successors.items():
+                            if neighbour_state in goal_states:
+                                goal_states.pop(neighbour_state)
+                                print(final_directions)
+                                final_directions[len(final_directions) - 1] = direction
+
+
                 if goal_states:
                     # Create and add generated nodes into queue
                     successor_cost = curr_node.g + step_cost * curr_node.power
@@ -244,3 +276,18 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
         i += 1
 
     return output
+
+"""
+test 1.
+Extracting action lines from stdout:
+Line 1: SPREAD 5 6 -1 1
+Line 2: SPREAD 3 1 0 1
+Line 3: SPREAD 3 2 -1 1
+Line 4: SPREAD 1 4 0 -1
+Line 5: SPREAD 1 3 0 -1
+
+test2.
+Line 1: SPREAD 1 4 1 0
+Line 2: SPREAD 2 4 0 -1
+Line 3: SPREAD 2 1 -1 0   
+"""
