@@ -1,9 +1,10 @@
 # COMP30024 Artificial Intelligence, Semester 1 2023
 # Project Part A: Single Player Infexion
 
-from .utils import render_board
-from math import sqrt
 import heapq
+from math import sqrt
+
+from .utils import render_board
 
 
 class Node:
@@ -73,23 +74,26 @@ def generateSuccessors(parent_node, power):
     successors = {}
     directions = [(1, 0), (-1, 0), (0, 1), (0, -1), (-1, 1), (1, -1)]
 
-    for dx, dy in directions:
-        successor = (x + dx * power, y + dy * power)
-        # Wrap around the hexagon graph if the successor state is outside the boundaries
-        if successor[0] < 0:
-            successor = (successor[0] + 7, successor[1])
-        elif successor[0] > 6:
-            successor = (successor[0] - 7, successor[1])
-            #print(f"Test succ {successor}")
-        if successor[1] < 0:
-            successor = (successor[0], successor[0] + 7)
-        elif successor[1] > 6:
-            successor = (successor[0], successor[1] - 7)
+    i = 1
+    while i <= power:
+        for dx, dy in directions:
+            successor = (x + dx * i, y + dy * i)
+            # Wrap around the hexagon graph if the successor state is outside the boundaries
+            if successor[0] < 0:
+                successor = (successor[0] + 7, successor[1])
+            elif successor[0] > 6:
+                successor = (successor[0] - 7, successor[1])
+            if successor[1] < 0:
+                successor = (successor[0], successor[0] + 7)
+            elif successor[1] > 6:
+                successor = (successor[0], successor[1] - 7)
 
-        # add to dictionary with direction taken
-        if parent_node.state == (1, 4):
-            print(f"Successor states {successor} power {power}")
-        successors[successor] = (dx, dy)
+            # add to dictionary with direction taken
+            if parent_node.state == (1, 3):
+                print(f"Successor states {successor} power {power}")
+
+            successors[(successor)] = (dx, dy)
+        i += 1
     return successors
 
 
@@ -201,6 +205,8 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
             curr_node = heapq.heappop(frontier)
             curr_state = curr_node.state
             print(curr_state)
+            if curr_state == (1, 3):
+                print(f"POWER {curr_node.power}")
 
             # If goal is found, add to path
             if curr_state in goal_states:
@@ -244,22 +250,10 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
             for successor_state, direction in successors.items():
                 if successor_state in explored:
                     continue
-                if is_between_goals(successor_state, goal_states):
-                    continue
-
-                # Check if there are any goals in between nodes and add goal found to path
-                if curr_node.power != 1:
-                    for power_of_node in range(1, curr_node.power):
-                        additional_successors = generateAdditionalSuccessors(curr_node, power_of_node, direction)
-                        if curr_state == (1, 4):
-                            print(f"Successor states {successor_state}")
-
-                        for neighbour_state, neighbour_dir in additional_successors.items():
-                            if curr_state == (1, 4):
-                                print(f"Neighbour states {neighbour_state}")
-                            if neighbour_state in goal_states:
-                                goal_states.pop(neighbour_state)
-                                changes.append((curr_state, direction))
+                #if is_between_goals(successor_state, goal_states):
+                    #continue
+                if curr_state == (1, 3):
+                    print(f"Successor states {successor_state} power {curr_power}")
 
                 if goal_states:
                     # Create and add generated nodes into queue
@@ -274,11 +268,12 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
     i = 0
     print(final_path)
     print(final_directions)
-    while i < len(final_path):
+    while i < len(final_directions):
         x, y = final_path[i]
         for state, dir in changes:
             if (x, y) == state:
                 final_directions.append(dir)
+        print(final_directions)
         dir_x, dir_y = final_directions[i]
         output.append((x, y, dir_x, dir_y))
         i += 1
