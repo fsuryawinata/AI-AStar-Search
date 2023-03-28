@@ -243,7 +243,6 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
                     goal_states.pop(total_goal_found[i].state)
 
             if total_goal_found:
-                print(f"TOTAL GOAL FOUND {total_goal_found[0].state}")
                 parent_node = total_goal_found[0].parent
                 if curr_state == parent_node.state:
                     changes[parent_node.state] = total_goal_found[0].direction
@@ -251,8 +250,6 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
     # Reverses path taken from goal to initial node
     output = []
     i = 0
-    print(f"PATH is {final_path}")
-    print(f"DIR IS {final_directions}")
     while i < len(final_directions):
         x, y = final_path[i]
 
