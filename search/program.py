@@ -64,6 +64,7 @@ def is_between_goals(curr_state, goal_states):
     else:
         return False
 
+
 def generateSuccessors(parent_node, power):
     """
     Generate the successors of the parent node
@@ -74,21 +75,23 @@ def generateSuccessors(parent_node, power):
 
     for dx, dy in directions:
         successor = (x + dx * power, y + dy * power)
-        grid_size = 7
-
         # Wrap around the hexagon graph if the successor state is outside the boundaries
         if successor[0] < 0:
-            successor = (abs(successor[0]) % grid_size, successor[1])
+            successor = (successor[0] + 7, successor[1])
         elif successor[0] > 6:
-            successor = (successor[0] % grid_size, successor[1])
+            successor = (successor[0] - 7, successor[1])
+            #print(f"Test succ {successor}")
         if successor[1] < 0:
-            successor = (successor[0], abs(successor[0]) % grid_size)
+            successor = (successor[0], successor[0] + 7)
         elif successor[1] > 6:
-            successor = (successor[0], successor[1] % grid_size)
+            successor = (successor[0], successor[1] - 7)
 
         # add to dictionary with direction taken
+        if parent_node.state == (1, 4):
+            print(f"Successor states {successor} power {power}")
         successors[successor] = (dx, dy)
     return successors
+
 
 def generateAdditionalSuccessors(parent_node, power, direction):
     """
@@ -99,17 +102,16 @@ def generateAdditionalSuccessors(parent_node, power, direction):
     successors = {}
 
     successor = (x + dx * power, y + dy * power)
-    grid_size = 7
 
     # Wrap around the hexagon graph if the successor state is outside the boundaries
     if successor[0] < 0:
-        successor = (abs(successor[0]) % grid_size, successor[1])
+        successor = (successor[0] + 7, successor[1])
     elif successor[0] > 6:
-        successor = (successor[0] % grid_size, successor[1])
+        successor = (successor[0] - 7, successor[1])
     if successor[1] < 0:
-        successor = (successor[0], abs(successor[0]) % grid_size)
+        successor = (successor[0], successor[0] + 7)
     elif successor[1] > 6:
-        successor = (successor[0], successor[1] % grid_size)
+        successor = (successor[0], successor[1] - 7)
 
     # add to dictionary with direction taken
     successors[successor] = (dx, dy)
@@ -198,6 +200,7 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
             # Remove current node from queue
             curr_node = heapq.heappop(frontier)
             curr_state = curr_node.state
+            print(curr_state)
 
             # If goal is found, add to path
             if curr_state in goal_states:
@@ -226,8 +229,6 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
 
                 path.reverse()
                 prev_direction.reverse()
-                #print(f"PAth {path}")
-                #print(f"PREV _DIR {prev_direction}")
 
                 final_path = path.copy()
                 final_directions = prev_direction.copy()
@@ -240,7 +241,6 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
             step_cost = 1
             successors = generateSuccessors(curr_node, curr_node.power)
 
-
             for successor_state, direction in successors.items():
                 if successor_state in explored:
                     continue
@@ -249,37 +249,42 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
 
                 # Check if there are any goals in between nodes and add goal found to path
                 if curr_node.power != 1:
-                    for power_of_node in range(1, curr_node.power - 1):
+                    for power_of_node in range(1, curr_node.power):
                         additional_successors = generateAdditionalSuccessors(curr_node, power_of_node, direction)
+                        if curr_state == (1, 4):
+                            print(f"Successor states {successor_state}")
 
                         for neighbour_state, neighbour_dir in additional_successors.items():
+                            if curr_state == (1, 4):
+                                print(f"Neighbour states {neighbour_state}")
                             if neighbour_state in goal_states:
                                 goal_states.pop(neighbour_state)
-                                print(curr_state)
-                                print()
-                                changes.append((curr_state,direction))
+                                changes.append((curr_state, direction))
 
                 if goal_states:
                     # Create and add generated nodes into queue
                     successor_cost = curr_node.g + step_cost * curr_node.power
                     successor_h = heuristic(successor_state, goal_states)
                     successor_node = Node(curr_node, successor_state, direction, 1,
-                                      successor_cost, successor_h)
+                                          successor_cost, successor_h)
                     heapq.heappush(frontier, successor_node)
 
     # Reverses path taken from goal to initial node
     output = []
     i = 0
-    while i < len(final_directions):
+    print(final_path)
+    print(final_directions)
+    while i < len(final_path):
         x, y = final_path[i]
         for state, dir in changes:
             if (x, y) == state:
-                final_directions[i] = dir
+                final_directions.append(dir)
         dir_x, dir_y = final_directions[i]
         output.append((x, y, dir_x, dir_y))
         i += 1
 
     return output
+
 
 """
 test 1.
