@@ -66,13 +66,15 @@ def is_between_goals(curr_state, goal_states):
         return False
 
 
-def generateSuccessors(parent_node, power):
+def generateSuccessors(parent_node, goal_state):
     """
     Generate the successors of the parent node
     """
+    power = parent_node.power
     x, y = parent_node.state
     successors = {}
     directions = [(1, 0), (-1, 0), (0, 1), (0, -1), (-1, 1), (1, -1)]
+    grid_size = 7
 
     i = 1
     while i <= power:
@@ -80,45 +82,17 @@ def generateSuccessors(parent_node, power):
             successor = (x + dx * i, y + dy * i)
             # Wrap around the hexagon graph if the successor state is outside the boundaries
             if successor[0] < 0:
-                successor = (successor[0] + 7, successor[1])
+                successor = (successor[0] % grid_size, successor[1])
             elif successor[0] > 6:
-                successor = (successor[0] - 7, successor[1])
+                successor = (successor[0] % grid_size, successor[1])
             if successor[1] < 0:
-                successor = (successor[0], successor[0] + 7)
+                successor = (successor[0], successor[0] % grid_size)
             elif successor[1] > 6:
-                successor = (successor[0], successor[1] - 7)
+                successor = (successor[0], successor[1] % grid_size)
 
             # add to dictionary with direction taken
-            if parent_node.state == (1, 3):
-                print(f"Successor states {successor} power {power}")
-
-            successors[(successor)] = (dx, dy)
+            successors[successor] = (dx, dy)
         i += 1
-    return successors
-
-
-def generateAdditionalSuccessors(parent_node, power, direction):
-    """
-    Generate the other successors of the parent node
-    """
-    x, y = parent_node.state
-    dx, dy = direction
-    successors = {}
-
-    successor = (x + dx * power, y + dy * power)
-
-    # Wrap around the hexagon graph if the successor state is outside the boundaries
-    if successor[0] < 0:
-        successor = (successor[0] + 7, successor[1])
-    elif successor[0] > 6:
-        successor = (successor[0] - 7, successor[1])
-    if successor[1] < 0:
-        successor = (successor[0], successor[0] + 7)
-    elif successor[1] > 6:
-        successor = (successor[0], successor[1] - 7)
-
-    # add to dictionary with direction taken
-    successors[successor] = (dx, dy)
     return successors
 
 
@@ -172,7 +146,7 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
     frontier = []
     final_path = []
     final_directions = []
-    changes = []
+    changes = {}
     explored = set()
 
     # Initialise start node
@@ -201,12 +175,11 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
 
         # Run while heap queue exists
         while frontier:
+            total_goal_found = []
             # Remove current node from queue
             curr_node = heapq.heappop(frontier)
             curr_state = curr_node.state
-            print(curr_state)
-            if curr_state == (1, 3):
-                print(f"POWER {curr_node.power}")
+
 
             # If goal is found, add to path
             if curr_state in goal_states:
@@ -245,35 +218,47 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
 
             # Generate successors for current node
             step_cost = 1
-            successors = generateSuccessors(curr_node, curr_node.power)
+            successors = generateSuccessors(curr_node, goal_states)
 
             for successor_state, direction in successors.items():
                 if successor_state in explored:
                     continue
-                #if is_between_goals(successor_state, goal_states):
-                    #continue
-                if curr_state == (1, 3):
-                    print(f"Successor states {successor_state} power {curr_power}")
+                if is_between_goals(successor_state, goal_states):
+                    continue
 
-                if goal_states:
-                    # Create and add generated nodes into queue
-                    successor_cost = curr_node.g + step_cost * curr_node.power
-                    successor_h = heuristic(successor_state, goal_states)
-                    successor_node = Node(curr_node, successor_state, direction, 1,
-                                          successor_cost, successor_h)
-                    heapq.heappush(frontier, successor_node)
+                # Create and add generated nodes into queue
+                successor_cost = curr_node.g + step_cost * curr_node.power
+                successor_h = heuristic(successor_state, goal_states)
+                successor_node = Node(curr_node, successor_state, direction, 1, successor_cost, successor_h)
+
+                if successor_state in goal_states:
+                    total_goal_found.append(successor_node)
+
+                heapq.heappush(frontier, successor_node)
+
+
+            # if goal found more than 1, keep the last goal found and keep the rest
+            if len(total_goal_found) > 1:
+                for i in range(0, len(total_goal_found) - 1):
+                    goal_states.pop(total_goal_found[i].state)
+
+            if total_goal_found:
+                print(f"TOTAL GOAL FOUND {total_goal_found[0].state}")
+                parent_node = total_goal_found[0].parent
+                if curr_state == parent_node.state:
+                    changes[parent_node.state] = total_goal_found[0].direction
 
     # Reverses path taken from goal to initial node
     output = []
     i = 0
-    print(final_path)
-    print(final_directions)
+    print(f"PATH is {final_path}")
+    print(f"DIR IS {final_directions}")
     while i < len(final_directions):
         x, y = final_path[i]
-        for state, dir in changes:
-            if (x, y) == state:
-                final_directions.append(dir)
-        print(final_directions)
+
+        for state, dir in changes.items():
+            if final_path[i] == state:
+                final_directions[i] = dir
         dir_x, dir_y = final_directions[i]
         output.append((x, y, dir_x, dir_y))
         i += 1
