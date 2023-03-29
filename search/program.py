@@ -29,7 +29,6 @@ class Node:
         else:
             return self.f < other.f
 
-
 def EuclidianDistance(curr_state, goal_states):
     """
     Takes current node location and returns the Euclidian
