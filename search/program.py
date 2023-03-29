@@ -33,11 +33,12 @@ class Node:
 def EuclidianDistance(curr_state, goal_states):
     """
     Takes current node location and returns the Euclidian
-   distance between current node and goal nodes
+    distance between current node and goal nodes
     """
     x1, y1 = curr_state
     cost_to_goal = []
 
+    # Find the cost to each goal from the current node
     for x2, y2 in goal_states:
         dx = x1 - x2
         dy = y1 - y2
@@ -51,6 +52,8 @@ def heuristic(curr_state, goal_states):
     Returns the minimum Euclidian distance between current node and goal nodes
     """
     cost_to_goal = EuclidianDistance(curr_state, goal_states)
+
+    # Return the cost to the closest goal
     return min(cost_to_goal)
 
 
@@ -60,13 +63,16 @@ def is_between_goals(curr_state, goal_states):
     """
     cost_to_goal = EuclidianDistance(curr_state, goal_states)
     cost_to_goal.sort()
+
+    # Check if there are more than one goal
     if len(cost_to_goal) > 1:
+        # Return True or False if the distance from current node is equal
         return cost_to_goal[0] == cost_to_goal[1]
     else:
         return False
 
 
-def generateSuccessors(parent_node, goal_state):
+def generateSuccessors(parent_node):
     """
     Generate the successors of the parent node
     """
@@ -76,6 +82,7 @@ def generateSuccessors(parent_node, goal_state):
     directions = [(1, 0), (-1, 0), (0, 1), (0, -1), (-1, 1), (1, -1)]
     grid_size = 7
 
+    # Generate "power" amount of successors in each direction
     i = 1
     while i <= power:
         for dx, dy in directions:
@@ -96,36 +103,6 @@ def generateSuccessors(parent_node, goal_state):
     return successors
 
 
-def checkSuccessor(parent_node, successor_state, goal_states):
-    """
-    Check if there are goal states between successor and parent state in the a direction
-    """
-    x_p, y_p = parent_node.state
-    x_s, y_s = successor_state
-    x_dir, y_dir = parent_node.direction
-    x_diff = x_s - x_p
-    y_diff = y_s - y_p
-
-    # Check if goals are in the same line and calculate distance from parent to last node it can reach
-    if (x_diff != 0) and (y_diff != 0):
-        return None
-    elif x_diff == 0:
-        distance_diff = int(y_diff)
-    else:
-        distance_diff = int(x_diff)
-
-    # Check the line for goal nodes
-    i = 0
-    while i < distance_diff:
-        x_s += x_dir
-        y_s += y_dir
-        if successor_state in goal_states:
-            return successor_state
-        i += 1
-
-    return None
-
-
 def search(input: dict[tuple, tuple]) -> list[tuple]:
     """
     This is the entry point for your submission. The input is a dictionary
@@ -136,25 +113,26 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
     See the specification document for more details.
     """
     print(render_board(input, ansi=True))
-    # initialise goal states
+    # Initialise goal states
     goal_states = {}
     for key, value in input.items():
         if value[0] == 'b':
             goal_states[key] = value
 
-    # Find most optimal start node (a red node closest to blue node)
+    # Initialise start nodes
+    init_states = {}
+    for key, value in input.items():
+        if value[0] == 'r':
+            init_states[key] = value
+
+    # A star search starts
     frontier = []
     final_path = []
     final_directions = []
     changes = {}
     explored = set()
 
-    # Initialise start node
-    init_states = {}
-    for key, value in input.items():
-        if value[0] == 'r':
-            init_states[key] = value
-
+    # Insert red nodes into queue
     for key, value in init_states.items():
         direction = (0, 0)
         red_state = key
@@ -165,6 +143,7 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
     new_start_node = Node(None)
     # Run while all goal nodes found
     while goal_states:
+        # Reset path and direction for new start
         path = []
         prev_direction = []
 
@@ -180,19 +159,21 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
             curr_node = heapq.heappop(frontier)
             curr_state = curr_node.state
 
-
             # If goal is found, add to path
             if curr_state in goal_states:
                 curr_power = goal_states[curr_state][1] + 1
+                # Remove from goals that needs to be found
                 goal_states.pop(curr_state)
+
+                # Set goal node as new start node
                 new_start_node = curr_node
                 new_start_node.power = curr_power
 
+                # Append parents to path and direction
                 while curr_node:
                     if curr_state not in path:
                         path.append(curr_state)
                         prev_direction.append(curr_node.direction)
-
                         curr_node = curr_node.parent
                         if curr_node:
                             curr_state = curr_node.state
@@ -218,7 +199,7 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
 
             # Generate successors for current node
             step_cost = 1
-            successors = generateSuccessors(curr_node, goal_states)
+            successors = generateSuccessors(curr_node)
 
             for successor_state, direction in successors.items():
                 if successor_state in explored:
@@ -231,17 +212,19 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
                 successor_h = heuristic(successor_state, goal_states)
                 successor_node = Node(curr_node, successor_state, direction, 1, successor_cost, successor_h)
 
+                # Record which goal states are found in a direction
                 if successor_state in goal_states:
                     total_goal_found.append(successor_node)
 
                 heapq.heappush(frontier, successor_node)
 
-
-            # if goal found more than 1, keep the last goal found and keep the rest
+            # If goal found more than 1, keep the last goal found and remove the rest
+            # Removed goals do not need to be recorded as they are found in the same move
             if len(total_goal_found) > 1:
                 for i in range(0, len(total_goal_found) - 1):
                     goal_states.pop(total_goal_found[i].state)
 
+            # Change direction to the most goals found in a direction
             if total_goal_found:
                 parent_node = total_goal_found[0].parent
                 if curr_state == parent_node.state:
@@ -253,27 +236,13 @@ def search(input: dict[tuple, tuple]) -> list[tuple]:
     while i < len(final_directions):
         x, y = final_path[i]
 
+        # Insert the changes recorded
         for state, dir in changes.items():
             if final_path[i] == state:
                 final_directions[i] = dir
         dir_x, dir_y = final_directions[i]
+
         output.append((x, y, dir_x, dir_y))
         i += 1
 
     return output
-
-
-"""
-test 1.
-Extracting action lines from stdout:
-Line 1: SPREAD 5 6 -1 1
-Line 2: SPREAD 3 1 0 1
-Line 3: SPREAD 3 2 -1 1
-Line 4: SPREAD 1 4 0 -1
-Line 5: SPREAD 1 3 0 -1
-
-test2.
-Line 1: SPREAD 1 4 1 0
-Line 2: SPREAD 2 4 0 -1
-Line 3: SPREAD 2 1 -1 0   
-"""
